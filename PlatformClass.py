@@ -14,35 +14,82 @@ UP = 2
 DOWN = 3
 
 class Platform:
-    def __init__(self,posX,posY,r,g,b):
+    def __init__(self,posX,posY,color):
         self.posX = posX
         self.posY = posY
-        self.r = r
-        self.g = g
-        self.b = b
+        self.color = color
+        self.r = 0
+        self.g = 0
+        self.b = 0
+        self.offset = 0
+
+        if self.color == "red\n":
+            self.r=250
+            self.g=random.randrange(0,250)
+            self.b=random.randrange(0,250)
+           
+        elif self.color == "blue\n":
+            self.r=random.randrange(0,250)
+            self.g=random.randrange(0,250)
+            self.b=250
+        elif self.color == "green\n":
+            self.r=random.randrange(0,250)
+            self.g=250
+            self.b=random.randrange(0,250)
+        elif self.color == "yellow":
+            self.r=random.randrange(150,250)
+            self.g=random.randrange(150,250)
+            self.b=random.randrange(0,250)
+        else:
+            self.r = random.randrange(0,250)
+            self.g = random.randrange(0,250)
+            self.b = random.randrange(0,250)
+
     def draw(self):
-        pygame.draw.rect(screen,(self.r,self.g,self.b),((self.posX,self.posY),(75,25)))
-    def Collision(self, x, y):
-         pass
+        pygame.draw.rect(screen,(self.r,self.g,self.b),((self.posX + self.offset,self.posY),(75,25)))
 
-platforms = []
 
-platformNum = 5
-for i in range(platformNum):
-    distance = (800 / platformNum)
-    ranx = random.randint(((i * distance) + 10),((i * distance) + 80))
-    rany = random.randint(((i * distance) + 10),((i * distance) + 80))
-    platforms.append(Platform(ranx,rany,(i + 1)*20, (i + 1)* 25, (i + 1)* 15))
+    def collide(self, x, y):
+        if (x + playerWidth) > (self.posX + self.offset) and x < (self.posX + self.offset + 75) and (y + playerHeight) > (self.posY) and (y) < self.posY + playerHeight:
+            return self.posY - playerHeight
+        else:
+            return False
+
+
+    def update(self,offset):
+        self.offset = offset
+
+def createPlatforms(theColors):
+    platforms = list()
+    gameColor = theColors[random.randrange(0, len(theColors))]
+    for i in range(30):
+        platx = random.randrange(-1500,1500,250)
+        platy = random.randrange(100,700,100)
+        platforms.append(Platform(platx,platy,gameColor))
+    return platforms
+
+
+colors = open("colors.txt", "r")
+
+theColors = list()
+
+for line in colors:
+    theColors.append(line)
+
+platforms = createPlatforms(theColors)
+platforms = createPlatforms(theColors)
+platforms = createPlatforms(theColors)
 
 #player variables
-xpos = 750 #xpos of player
+xpos = 400 #xpos of player
 ypos = 775 #ypos of player
 vx = 0 #x velocity of player
 vy = 0 #y velocity of player
 keys = [False, False, False, False] #this list holds whether each key has been pressed
 isOnGround = False #this variable stops gravity from pulling you down more when on a platform
-playerHeight = 50
+playerHeight = 25
 playerWidth = 25
+offset = 0
 
 while not gameover:
     clock.tick(60) #FPS
@@ -65,48 +112,29 @@ while not gameover:
                 keys[RIGHT]=False
             elif event.key == pygame.K_w:
                 keys[UP]=False
-          
+    
+    if ypos <= 0:
+        platforms = createPlatforms(theColors)
+        ypos = 725
 
     #LEFT MOVEMENT
     if keys[LEFT]==True:
-        vx=-3
-        direction = LEFT
+        offset += 8
     #RIGHT MOVEMENT
     elif keys[RIGHT] == True:
-        vx = 3
-        direction = RIGHT
-    #turn off velocity
-    else:
-        vx = 0
+        offset += -8
         #JUMPING
     if keys[UP] == True and isOnGround == True: #only jump when on the ground
-        vy = -8
+        vy = -10
         isOnGround = False
-        direction = UP
-    
-    
-        
-    xpos+=vx #update player xpos
-    ypos+=vy
-    
-    #COLLISION
-    
+
+    isOnGround = False
     #collision with feetsies
-    for i in platforms:
-        if (((ypos + playerHeight) == i.posY) and (xpos == i.posX)) or (((ypos + playerHeight) == i.posY) and ((xpos + playerWidth) == i.posX + 75)):
+    for plats in platforms:
+        if plats.collide(xpos,ypos) != False:
+            ypos = plats.collide(xpos,ypos)
             vy = 0
-            ypos = i.posY - playerHeight - 1
-        if (((ypos + playerHeight) == i.posY) and (xpos == i.posX)) or (((ypos + playerHeight) == i.posY) and ((xpos + playerWidth) == i.posX + 75)):
-            vy = 0
-            ypos = i.posY - playerHeight - 1
-
-    #stop moving if you hit edge of screen (will be removed for scrolling)
-    if xpos+playerWidth > 800:
-        xpos-=3
-    if xpos<0:
-        xpos+=3
-
-    
+            isOnGround = True
     #stop falling if on bottom of game screen
     if ypos > 800-playerHeight:
         isOnGround = True
@@ -115,19 +143,20 @@ while not gameover:
     
     #gravity
     if isOnGround == False:
-        vy+=.2 #notice this grows over time, aka ACCELERATION
+        vy+=.3 #notice this grows over time, aka ACCELERATION
     
-
+    ypos+=vy
+    for plats in platforms:
+       plats.update(offset)
 
     # RENDER--------------------------------------------------------------------------------
     # Once we've figured out what frame we're on and where we are, time to render.
             
     screen.fill((0,0,0)) #wipe screen so it doesn't smear
 
-    
-    for Platform in platforms:
-        Platform.draw()
-    pygame.draw.rect(screen, (255,0,0), (xpos, ypos, 25,50))
+    for plats in platforms:
+        plats.draw()
+    pygame.draw.rect(screen, (255,0,0), (xpos, ypos, playerWidth, playerHeight))
         
     pygame.display.flip()#this actually puts the pixel on the screen
     
