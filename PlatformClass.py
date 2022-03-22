@@ -1,6 +1,7 @@
 import pygame
 import random
-pygame.init()  
+pygame.init()
+joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
 pygame.display.set_caption("Platform Classes")  # sets the window title
 screen = pygame.display.set_mode((800, 800))  # creates game screen
 screen.fill((0,0,0))
@@ -68,6 +69,11 @@ def createPlatforms(theColors):
         platforms.append(Platform(platx,platy,gameColor))
     return platforms
 
+jump = pygame.mixer.Sound('jump.wav')
+pygame.mixer.Sound.set_volume(jump, .1)
+music = pygame.mixer.music.load('music.wav')
+pygame.mixer.music.set_volume(.1)
+pygame.mixer.music.play(-1)
 
 colors = open("colors.txt", "r")
 
@@ -90,6 +96,7 @@ isOnGround = False #this variable stops gravity from pulling you down more when 
 playerHeight = 25
 playerWidth = 25
 offset = 0
+inputDelay = 0
 
 while not gameover:
     clock.tick(60) #FPS
@@ -97,7 +104,9 @@ while not gameover:
     for event in pygame.event.get(): #quit game if x is pressed in top corner
         if event.type == pygame.QUIT:
             gameover = True
-      
+
+        print(joysticks[0].get_axis(1))
+        
         if event.type == pygame.KEYDOWN: #keyboard input
             if event.key == pygame.K_a:
                 keys[LEFT]=True
@@ -112,6 +121,21 @@ while not gameover:
                 keys[RIGHT]=False
             elif event.key == pygame.K_w:
                 keys[UP]=False
+                
+        if event.type == pygame.JOYAXISMOTION: #keyboard input
+            if joysticks[0].get_axis(0) < 0:
+                keys[LEFT]=True
+            else:
+                keys[LEFT]=False
+            if joysticks[0].get_axis(0) > 0:
+                keys[RIGHT]=True
+            else:
+                keys[RIGHT]=False
+            if joysticks[0].get_axis(1) == -1:
+                keys[UP]=True
+            else:
+                keys[UP]=False
+        
     
     if ypos <= 0:
         platforms = createPlatforms(theColors)
@@ -125,6 +149,7 @@ while not gameover:
         offset += -8
         #JUMPING
     if keys[UP] == True and isOnGround == True: #only jump when on the ground
+        pygame.mixer.Sound.play(jump)
         vy = -10
         isOnGround = False
 
@@ -160,6 +185,8 @@ while not gameover:
         
     pygame.display.flip()#this actually puts the pixel on the screen
     
+    
+    inputDelay += 1
 #end game loop------------------------------------------------------------------------------
 pygame.quit()
 
